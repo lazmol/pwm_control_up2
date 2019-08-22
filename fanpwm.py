@@ -4,20 +4,15 @@ import os
 import time
 
 
-def cpu_temp(temp_file='/sys/class/thermal/thermal_zone0/temp'):
-    '''Get cpu temp from /sys'''
-    with open(temp_file) as fh:
-        temperature = fh.readline()
-        
-    return float(temperature)
     
 
 class PWMPin:
-    PIN2SYS = {2: '/sys/class/pwm/pwmchip0/pwm0'}
+    '''udev rules have to be set so that it runs without sudo'''
+    PIN2SYS = {32: '/sys/class/pwm/pwmchip0/pwm0'}
     def __init__(self, pin: int=32, frequency: int=25000):
         self.pin = pin
         self.frequency = frequency
-        self.period = 1 / frequency
+        self.period = 10**9 / frequency  # in nanoseconds
         self.setup()
 
     @property
@@ -43,3 +38,38 @@ class PWMPin:
         '''percent must be from 0 to 100'''
         duty_period = self._percent_to_duty_cycle(percent)
         os.system(f'echo {duty_period} > {self.gpio_sys_path}/duty_cycle')
+
+        
+class Control:
+    REFRESH_TIME = 2  # seconds
+    def __init__(self, pwm, t_range=(40, 70), pwm_range=(10, 100)):
+        self.pwm = pwm
+        self.cpu_temp = cpu_temp()
+    
+    def run(self):
+        try:
+            while True:
+		        self.change_duty()
+		        time.sleep(self.REFRESH_TIME)
+        except KeyboardInterrupt:  # trap a CTRL+C keyboard interrupt 
+            sys.exit(0)
+            
+    def change_duty(self):
+        self.cpu_temp = cpu_temp()
+        temp_percentage = self.cpu_temp / t_range[1]
+        pwm_percentage = temp_percentage * pwm_range[1]
+        
+    @property
+    def cpu_temp(temp_file='/sys/class/thermal/thermal_zone0/temp'):
+        '''Get cpu temp from /sys'''
+        with open(temp_file) as fh:
+            temperature = fh.readline()
+        return float(temperature)
+
+def main():
+    pwm = PWMPin()
+    Control(pwm).run()
+
+
+if __name__ == '__main__':
+    main()
