@@ -2,10 +2,9 @@
 
 import os
 import time
-
+from numpy import interp
 
     
-
 class PWMPin:
     '''udev rules have to be set so that it runs without sudo'''
     PIN2SYS = {32: '/sys/class/pwm/pwmchip0/pwm0'}
@@ -27,7 +26,7 @@ class PWMPin:
         self.set_duty_cycle(100)
         os.system(f'echo 1 > {self.gpio_sys_path}/enable')
 
-    def _percent_to_duty_cycle(self, percentage)
+    def _percent_to_duty_period(self, percentage)
         if percent < 0 or percent > 100:
             print('Percent must be in [0, 100]')
             return self.period  # 100% load
@@ -36,28 +35,30 @@ class PWMPin:
         
     def set_duty_cycle(self, percent):
         '''percent must be from 0 to 100'''
-        duty_period = self._percent_to_duty_cycle(percent)
+        duty_period = self._percent_to_duty_period(percent)
         os.system(f'echo {duty_period} > {self.gpio_sys_path}/duty_cycle')
 
         
 class Control:
     REFRESH_TIME = 2  # seconds
-    def __init__(self, pwm, t_range=(40, 70), pwm_range=(10, 100)):
+    def __init__(self, pwm: PWMPin, t_range=(40, 70), pwm_range=(10, 100)):
         self.pwm = pwm
+	self.t_range = t_range
+	self.pwm_range = pwm_range
         self.cpu_temp = cpu_temp()
     
     def run(self):
         try:
             while True:
-		        self.change_duty()
-		        time.sleep(self.REFRESH_TIME)
+		self.change_duty()
+		time.sleep(self.REFRESH_TIME)
         except KeyboardInterrupt:  # trap a CTRL+C keyboard interrupt 
             sys.exit(0)
             
     def change_duty(self):
         self.cpu_temp = cpu_temp()
-        temp_percentage = self.cpu_temp / t_range[1]
-        pwm_percentage = temp_percentage * pwm_range[1]
+	pwm_percentage = interp(self.cpu_temp, self.t_range, self.pwm_range)
+	self.pwm.set_duty_cycle(pwm_percentage)
         
     @property
     def cpu_temp(temp_file='/sys/class/thermal/thermal_zone0/temp'):
