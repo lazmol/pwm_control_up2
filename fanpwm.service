@@ -1,0 +1,14 @@
+# put in ~/.config/systemd/user/
+# enable with systemctl --user enable fanpwm.service
+[Unit]
+Description=PWM Fan Control
+# After=default.target
+
+[Service]
+Type=simple
+# User=laco
+ExecStart= /home/laco/anaconda3/bin/python /home/laco/pwm_control_up2/fanpwm.py &
+# Restart=always
+
+[Install]
+WantedBy=multi-user.target
