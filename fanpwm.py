@@ -43,9 +43,9 @@ class PWMPin:
 
 
 class Control:
-    REFRESH_TIME = 4  # seconds
+    REFRESH_TIME = 3  # seconds
 
-    def __init__(self, pwm: PWMPin, t_range=(40, 70), pwm_range=(40, 100)):
+    def __init__(self, pwm: PWMPin, t_range=(40, 60), pwm_range=(40, 100)):
         self.pwm = pwm
         self.t_range = t_range
         self.pwm_range = pwm_range
