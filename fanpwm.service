@@ -11,4 +11,4 @@ ExecStart= /home/laco/anaconda3/bin/python /home/laco/pwm_control_up2/fanpwm.py 
 # Restart=always
 
 [Install]
-WantedBy=multi-user.target
+WantedBy=default.target
