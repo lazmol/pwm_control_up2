@@ -1,0 +1,4 @@
+SUBSYSTEM=="pwm", PROGRAM="/bin/sh -c '\
+	chown -R root:gpiouser /sys/class/pwm && chmod -R 770 /sys/class/pwm;\
+	chown -R root:gpiouser /sys/devices/pci0000:00/0000:00:1a.0/pwm/pwmchip* && chmod -R 770 /sys/devices/pci0000:00/0000:00:1a.0/pwm/pwmchip*;\
+'"
