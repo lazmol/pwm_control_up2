@@ -1,29 +1,32 @@
 #!/usr/bin/env python3
+'''Script to control devices with pwm'''
 
 import os
 import sys
 import time
+import argparse
+
 from numpy import interp
 
 
 class PWMPin:
     '''udev rules have to be set so that it runs without sudo'''
-    PIN2SYS = {32: '/sys/class/pwm/pwmchip0/pwm0'}
+    PWMCHIP_DIR = '/sys/class/pwm/pwmchip0'
+    PIN2CHANNEL = {32: 0, 33: 1, 16: 3}  # on up2
 
     def __init__(self, pin: int=32, frequency: int=25000):
         self.pin = pin
+        self.channel = self.PIN2CHANNEL[self.pin]
         self.frequency = frequency
         self.period = int(10**9 / frequency)  # in nanoseconds
-        self.setup()
 
     @property
     def gpio_sys_path(self):
-        return self.PIN2SYS[self.pin]
+        return os.path.join(self.PWMCHIP_DIR, f'pwm{self.channel}')
 
     def setup(self):
-        chip_dir = os.path.dirname(self.gpio_sys_path)  # export is one dir up
-        export_file = os.path.join(chip_dir, 'export')
-        os.system(f'echo 0 > {export_file}')
+        export_file = os.path.join(self.PWMCHIP_DIR, 'export')
+        os.system(f'echo {self.channel} > {export_file}')
         time.sleep(4)
         os.system(f'echo {self.period} > {self.gpio_sys_path}/period')
         self.set_duty_cycle(100)
@@ -41,6 +44,12 @@ class PWMPin:
         duty_period = self._percent_to_duty_period(percent)
         os.system(f'echo {duty_period} > {self.gpio_sys_path}/duty_cycle')
 
+    def cleanup(self):
+        os.system(f'echo 0 > {self.gpio_sys_path}/enable')
+        time.sleep(1)
+        unexport_file = os.path.join(self.PWMCHIP_DIR, 'unexport')
+        os.system(f'echo {self.channel} > {unexport_file}')
+
 
 class Control:
     REFRESH_TIME = 1  # seconds
@@ -51,12 +60,15 @@ class Control:
         self.pwm_range = pwm_range
 
     def run(self):
+        self.pwm.setup()
         try:
             while True:
                 self.change_duty()
                 time.sleep(self.REFRESH_TIME)
         except KeyboardInterrupt:  # trap a CTRL+C keyboard interrupt
             sys.exit(0)
+        finally:
+            self.pwm.cleanup()
 
     def change_duty(self):
         cpu_temp = self.cpu_temp
@@ -73,8 +85,23 @@ class Control:
 
 
 def main():
+    parser = argparse.ArgumentParser(description=__doc__,
+                                     formatter_class=argparse.RawTextHelpFormatter)
+    parser.add_argument('run', choices=['start', 'stop'])
+    args = parser.parse_args()
+    if args.run == 'start':
+        start()
+    else:
+        stop()
+
+
+def start():
     pwm = PWMPin()
     Control(pwm).run()
+
+
+def stop():
+    PWMPin().cleanup()
 
 
 if __name__ == '__main__':

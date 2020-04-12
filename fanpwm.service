@@ -7,8 +7,9 @@ Description=PWM Fan Control
 [Service]
 Type=simple
 # User=laco
-ExecStart= /home/laco/anaconda3/bin/python /home/laco/pwm_control_up2/fanpwm.py &
+ExecStart= /home/laco/anaconda3/bin/python /home/laco/pwm_control_up2/fanpwm.py start
 # Restart=always
+ExecStop= /home/laco/anaconda3/bin/python /home/laco/pwm_control_up2/fanpwm.py stop
 
 [Install]
 WantedBy=multi-user.target
